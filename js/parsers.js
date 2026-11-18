@@ -27,7 +27,7 @@ function fromWP(p){
     const sub=dec(p.subtitle||(p.acf&&(p.acf.subtitle||p.acf.sub_title))||(p.meta&&(p.meta.subtitle||p.meta.sub_title))||'').replace(/<[^>]+>/g,'').trim();
     return norm({id:p.id,modified:p.modified,title,subtitle:sub||(FALLBACK.find(f=>f.id===p.id)||{}).subtitle||'',excerpt:ex,paras,gallery,full:true,commentsClosed:p.comment_status==='closed',date:p.date,link:p.link,
       img:(sz.large||sz.medium_large||{}).source_url||m.source_url||'',thumb:(sz.medium||sz.thumbnail||{}).source_url||m.source_url||'',
-      cat:match?match.n:(cats[0]||'أخبار'),catKeys:keys,author:((emb.author||[])[0]||{}).name||'أصداء الديرة',views:+(p.views||p.post_views||(p.meta&&(p.meta.views||p.meta.post_views_count))||((FALLBACK.find(f=>f.id===p.id)||{}).views)||0),breaking:isBrk});
+      cat:match?match.n:(cats[0]||'أخبار'),catKeys:keys,cids:(p.categories||[]),author:((emb.author||[])[0]||{}).name||'أصداء الديرة',views:+(p.views||p.post_views||(p.meta&&(p.meta.views||p.meta.post_views_count))||((FALLBACK.find(f=>f.id===p.id)||{}).views)||0),breaking:isBrk});
   }
 function parseObit(x){
     const dec=s=>{const t=document.createElement('textarea');t.innerHTML=s||'';return t.value;};

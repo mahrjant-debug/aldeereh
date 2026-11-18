@@ -18,7 +18,7 @@ const S = {
   posts: store.get('ald_posts', null) || FALLBACK,
   opinions: store.get('ald_ops', null) || OPINIONS,
   videos: store.get('ald_vids', null) || VRAW.map(r => mkV(r[0], r[1], r[2], r[3], r[4])),
-  obits: null, weddings: null, catIds: null, extra: [],
+  obits: null, weddings: null, catIds: null, extra: [], local: store.get('ald_local', []),
   live: false, loading: false, online: navigator.onLine !== false, cacheT: store.get('ald_cache_t', 0),
   saved: store.get('ald_saved', []),
   follows: store.get('ald_follows', { authors: [] }),
@@ -146,17 +146,26 @@ async function loadObits() {
   catch (e) { S.obits = S.obits || []; S.obitErr = true; }
   if (AL.hooks.onObits) AL.hooks.onObits();
 }
-async function catIds() { if (!S.catIds) { try { S.catIds = await api('categories?per_page=100&_fields=id,name,count'); } catch (e) { S.catIds = []; } } return S.catIds; }
-AL.loadByCat = async name => {
-  const k = nk(name), ids = (await catIds()).filter(c => { const n = nk(c.name.replace(/&amp;/g, '&')); return n.includes(k) || k.includes(n); }).map(c => c.id);
-  if (!ids.length) return null;
-  return (await api('posts?categories=' + ids.join(',') + '&per_page=24&_embed=author,wp:featuredmedia,wp:term')).map(fromWP).filter(Boolean);
+async function catIds() { if (!S.catIds) { try { S.catIds = await api('categories?per_page=100&_fields=id,name,count,parent'); } catch (e) { S.catIds = []; } } return S.catIds; }
+/* أرقام الأقسام لاسم قسم: القسم نفسه + كل فروعه (الموقع لا يعيد أخبار الفروع تلقائياً) + الأقسام المحلية الإضافية */
+AL.idsFor = async name => {
+  const all = await catIds(), k = nk(name);
+  const base = all.filter(c => { const n = nk(c.name.replace(/&amp;/g, '&')); return n === k || n.includes(k) || k.includes(n); }).map(c => c.id);
+  const roots = [...base]; if (k === nk(LOCAL_CAT)) roots.push(...LOCAL_EXTRA);
+  const set = new Set(roots); let grew = true;
+  while (grew) { grew = false; all.forEach(c => { if (c.parent && set.has(c.parent) && !set.has(c.id)) { set.add(c.id); grew = true; } }); }
+  return [...set];
 };
+AL.loadByCat = async (name, n = 24) => {
+  const ids = await AL.idsFor(name); if (!ids.length) return null;
+  return (await api('posts?categories=' + ids.join(',') + '&per_page=' + n + '&_embed=author,wp:featuredmedia,wp:term')).map(fromWP).filter(Boolean);
+};
+async function loadLocal() { try { const l = await AL.loadByCat(LOCAL_CAT, 8); if (l && l.length) { S.local = l; store.set('ald_local', l.slice(0, 8)); } } catch (e) {} }
 async function checkNew() {
   if (!S.online) return;
   try { const j = await api('posts?per_page=1&_fields=id,modified', 8000); const sig = j[0] && (j[0].id + '|' + (j[0].modified || '')); if (sig && sig !== S.sig) { await loadPosts(true); if (AL.live('/')) renderHome(); } } catch (e) {}
 }
-async function fullRefresh() { await Promise.all([loadPosts(true), loadOpinions(), loadVideos(), loadObits()]); if (AL.hooks.onFull) AL.hooks.onFull(); if (AL.live('/')) renderHome(); }
+async function fullRefresh() { await Promise.all([loadPosts(true), loadOpinions(), loadVideos(), loadObits(), loadLocal()]); if (AL.hooks.onFull) AL.hooks.onFull(); if (AL.live('/')) renderHome(); }
 AL.fullRefresh = fullRefresh;
 
 /* ---------- Stored items cleanup (deleted on the site) ---------- */
@@ -210,6 +219,7 @@ function pageHome() {
   <div class="cols"><div class="main"><div class="list">${rest.slice(0, 5).map(p => row(p)).join('')}</div>
     ${section('الأكثر قراءة', '', `<div class="seg" id="mrseg"><button class="on" data-mr="day">اليوم</button><button data-mr="week">الأسبوع</button></div><div id="mrl">${mostHTML('day')}</div>`)}</div>
   <aside class="side">${section('مقالات الرأي', '/c/' + encodeURIComponent('مقالات'), `<div class="ops">${S.opinions.slice(0, 4).map(opCard).join('')}</div>`)}<div id="pollbox"></div></aside></div>
+  ${S.local && S.local.length ? section('أخبار المنيزلة', '/c/' + encodeURIComponent(LOCAL_CAT), `<div class="list">${S.local.slice(0, 5).map(p => row(p)).join('')}</div>`) : ''}
   ${section('مكتبة الفيديو', '/videos', vbandHTML(), 'dark')}
   ${section('المزيد من الأخبار', '', `<div class="list wide">${rest.slice(5, 9).map(p => row(p)).join('')}</div><div class="grid">${rest.slice(9).map(card).join('')}</div>`)}
   <div id="installbox"></div>`;
@@ -260,7 +270,8 @@ async function pageCat(name, el) {
   };
   const spons = () => '<div class="spons">رعاية هذا القسم متاحة للمعلنين</div>';
   if (name === 'مقالات') { draw(S.opinions); return; }
-  const k = nk(name); draw(S.posts.filter(p => (p.catKeys || []).some(x => x.includes(k) || k.includes(x))));
+  const k = nk(name); const ids0 = S.catIds ? new Set(await AL.idsFor(name)) : null;
+  draw(S.posts.filter(p => (p.catKeys || []).some(x => x.includes(k) || k.includes(x)) || (ids0 && (p.cids || []).some(i => ids0.has(i)))));
   try { const more = await AL.loadByCat(name); if (more && more.length && AL.live('/c/' + name)) { AL.remember(more); draw(more); } } catch (e) {}
 }
 function pageVideos(el) {
