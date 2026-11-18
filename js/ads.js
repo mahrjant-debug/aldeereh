@@ -51,5 +51,5 @@ function interstitial() {
   let n = 5; const t = setInterval(() => { const b = $('#skipb'); if (!b) { clearInterval(t); return; } n--; if (n <= 0) { b.disabled = false; b.textContent = 'تخطّي'; clearInterval(t); } else b.textContent = 'تخطّي بعد ' + AR(n); }, 1000);
 }
 const AR = AL.AR;
-AL.initAds = async () => { await build(); await fetchAds(); setTimeout(interstitial, 2200); setInterval(fetchAds, 15 * 60 * 1000); };
+AL.initAds = async () => { await build(); await fetchAds(); setInterval(fetchAds, 15 * 60 * 1000); };
 })();
