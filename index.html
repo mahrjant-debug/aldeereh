@@ -16,16 +16,19 @@
 <link rel="stylesheet" href="/css/site.css">
 </head>
 <body>
+<div id="splash"><img src="/assets/logo.png" alt="أصداء الديرة"><div><i></i>جارٍ جلب آخر الأخبار</div></div>
 <header class="hd"><div class="wrap">
   <a class="logo" href="/" data-link aria-label="أصداء الديرة"><img src="/assets/logo.png" alt="أصداء الديرة"></a>
   <nav class="nav" aria-label="القائمة الرئيسية">
-    <a href="/" data-link data-nav="home">الرئيسية</a><a href="/categories" data-link data-nav="categories">الأقسام</a>
+    <a href="/" data-link data-nav="home">الرئيسية</a><a href="/explore" data-link data-nav="explore">استكشف</a>
     <a href="/videos" data-link data-nav="videos">الفيديو</a><a href="/obits" data-link data-nav="obits">الوفيات</a>
     <a href="/weddings" data-link data-nav="weddings">الأفراح</a><a href="/saved" data-link data-nav="saved">المحفوظة</a>
   </nav>
   <span class="sp"></span>
-  <form id="sform" role="search"><input name="q" type="search" placeholder="ابحث في الأخبار…" aria-label="بحث"></form>
+  <form id="sform" class="sform" role="search"><input name="q" type="search" placeholder="ابحث في الأخبار…" aria-label="بحث"></form>
   <button class="icon" id="refresh" aria-label="تحديث"><span class="material-symbols-rounded">refresh</span></button>
+  <a class="icon" href="/notifications" data-link aria-label="التنبيهات"><span class="material-symbols-rounded">notifications</span><span class="nbadge" hidden></span></a>
+  <a class="icon dsk" href="/settings" data-link aria-label="الإعدادات"><span class="material-symbols-rounded">settings</span></a>
   <button class="icon" id="theme" aria-label="الوضع الليلي"><span class="material-symbols-rounded">dark_mode</span></button>
 </div>
 <div class="chips" id="chips" aria-label="الأقسام">
@@ -39,11 +42,12 @@
 <footer>© أصداء الديرة · <a href="https://www.aldeereh.com" target="_blank" rel="noopener">aldeereh.com</a><a href="https://t.me/aldeereh" target="_blank" rel="noopener">تيليجرام</a><a href="https://wa.me/966594002003" target="_blank" rel="noopener">واتساب</a></footer>
 <nav class="tabbar" aria-label="التنقل">
   <a href="/" data-link data-nav="home"><span class="material-symbols-rounded">home</span>الرئيسية</a>
-  <a href="/categories" data-link data-nav="categories"><span class="material-symbols-rounded">grid_view</span>الأقسام</a>
-  <a href="/search" data-link data-nav="search"><span class="material-symbols-rounded">search</span>بحث</a>
+  <a href="/explore" data-link data-nav="explore"><span class="material-symbols-rounded">explore</span>استكشف</a>
   <a href="/saved" data-link data-nav="saved"><span class="material-symbols-rounded">bookmark</span>المحفوظة<span id="savedCount" hidden></span></a>
+  <a href="/notifications" data-link data-nav="notifications"><span class="material-symbols-rounded">notifications</span>التنبيهات<span class="nbadge" hidden></span></a>
+  <a href="/settings" data-link data-nav="settings"><span class="material-symbols-rounded">settings</span>الإعدادات</a>
 </nav>
 <div id="modal" role="dialog" aria-modal="true"></div><div id="toast" role="status"></div>
-<script src="/js/data.js"></script><script src="/js/parsers.js"></script><script src="/js/app.js"></script>
+<script src="/js/data.js"></script><script src="/js/parsers.js"></script><script src="/js/core.js"></script><script src="/js/notify.js"></script><script src="/js/card.js"></script><script src="/js/ads.js"></script><script src="/js/services.js"></script><script src="/js/settings.js"></script><script src="/js/boot.js"></script>
 </body>
 </html>
