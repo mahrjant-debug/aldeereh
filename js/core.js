@@ -76,7 +76,7 @@ const pic = AL.pic = (p, cls, big) => {
   if (cls === 'row-img' || cls === 'card-img') return `<span class="${cls} pw" style="--u:url('${esc(u).replace(/'/g, '%27')}')"><img src="${esc(u)}" alt="" loading="lazy" ${fail}></span>`;
   return `<img class="${cls || ''}" src="${esc(u)}" alt="" loading="lazy" ${fail}>`;
 };
-const badges = AL.badges = p => (p.breaking ? '<span class="pill red">عاجل</span>' : '') + `<span class="pill">${esc(p.cat || '')}</span>`;
+const badges = AL.badges = p => (p.breaking ? '<span class="pill red">عاجل</span>' : '') + (/^\s*بالفيديو|^\s*فيديو/.test(p.title || '') ? '<span class="pill vtag">▶ فيديو</span>' : '') + `<span class="pill">${esc(p.cat || '')}</span>`;
 const card = AL.card = (p, extra) => p.opinion ? opCard(p) : `<a class="card" href="${link(p)}" data-link>${pic(p, 'card-img')}<div class="card-b"><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3><div class="meta dim">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div>${extra || ''}</div></a>`;
 const row = AL.row = (p, extra) => `<div class="row-w"><a class="row" href="${link(p)}" data-link>${pic(p, 'row-img')}<div><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3>${p.subtitle ? `<p class="dim sub">${esc(p.subtitle)}</p>` : ''}<div class="meta dim">${esc(ago(p.date))}${extra || ''}</div></div></a><button class="bm ${isSaved(p.id) ? 'on' : ''}" data-save="${p.id}" aria-label="حفظ"><span class="material-symbols-rounded">bookmark</span></button></div>`;
 const heroCard = (p, big) => `<a class="hero-c ${big ? 'big' : ''}" href="${link(p)}" data-link>${pic(p, 'hero-img', true)}<div class="hero-t"><div class="meta">${badges(p)}</div>${p.subtitle ? `<div class="hero-sub">${esc(p.subtitle)}</div>` : ''}<h2>${esc(p.title)}</h2><div class="meta">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div></div></a>`;
@@ -366,6 +366,7 @@ function articleHTML(p, full) {
   <button class="icon ${isSaved(p.id) ? 'on' : ''}" data-save="${p.id}" aria-label="حفظ"><span class="material-symbols-rounded">bookmark</span></button>
   <button class="icon" data-sharepost="${p.id}" aria-label="مشاركة"><span class="material-symbols-rounded">share</span></button></div></div>
   ${isOp ? `<div class="op-hero">${avatar(p, 'op-av big')}<b>${esc(p.author || '')}</b></div>` : ''}
+  <div id="vslot"></div>
   ${!isOp && img(p, true) && !NOIMG() ? `<img class="art-img" src="${esc(img(p, true))}" alt="" onerror="this.remove()">` : ''}
   <div class="meta">${badges(p)}</div>
   ${p.subtitle ? `<div class="art-sub">${esc(p.subtitle)}</div>` : ''}
@@ -383,6 +384,22 @@ function articleHTML(p, full) {
   <section class="comments" id="comments"><h2 class="sh">التعليقات</h2><div id="clist" class="dim">جارٍ التحميل…</div>${p.commentsClosed ? '<p class="dim">التعليقات مغلقة على هذا الخبر</p>' : `<form id="cform"><input name="n" placeholder="الاسم (اختياري)" maxlength="60"><input name="e" type="email" placeholder="البريد (اختياري)"><textarea name="t" required maxlength="500" placeholder="اكتب تعليقك…" rows="3">${esc(sessionStorage.getItem('ald_prefill') || '')}</textarea><div class="dim sm" id="ccount"></div><div class="dim sm" id="cerr" style="color:#C0392B"></div><button class="btn" type="submit">إرسال التعليق</button></form>`}</section>
   <div id="related"></div></article>`;
 }
+AL.loadVideo = async p => {
+  if (!S.online) return;
+  const K = 'ald_yt', M = store.get(K, {}); let yt = M[p.id];
+  if (yt === undefined) {
+    try { const r = await fetch('/api/yt?id=' + p.id); if (!r.ok) return; yt = (await r.json()).yt || ''; M[p.id] = yt; const ks = Object.keys(M); if (ks.length > 150) delete M[ks[0]]; store.set(K, M); } catch (e) { return; }
+  }
+  const slot = $('#vslot'); if (!yt || !slot || !AL.live(link(p))) return;
+  const poster = `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, fb = esc(img(p, true) || '');
+  slot.innerHTML = `<div class="vplayer" data-yt="${yt}" role="button" tabindex="0" aria-label="تشغيل الفيديو"><img src="${poster}" alt="" ${fb ? `onerror="this.onerror=null;this.src='${fb}'"` : ''}><span class="vp-tag"><span class="material-symbols-rounded">videocam</span>فيديو</span><span class="vp-play"><span class="material-symbols-rounded">play_arrow</span></span></div>`;
+  const ai = $('.art-img'); if (ai) ai.remove();
+};
+document.addEventListener('click', e => {
+  const v = e.target.closest('.vplayer[data-yt]'); if (!v) return;
+  v.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${v.dataset.yt}?autoplay=1&rel=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="فيديو الخبر"></iframe>`; v.removeAttribute('data-yt'); v.removeAttribute('role');
+});
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.vplayer[data-yt]')) { e.preventDefault(); e.target.click(); } });
 async function pageArticle(kind, id, el) {
   let p = kind === 'obit' ? (S.obits || []).map(obitPost).find(x => x.id === id) : AL.allKnown().find(x => x.id === id);
   const opinion = kind === 'opinion', key = kind[0] + id;
@@ -404,6 +421,7 @@ async function pageArticle(kind, id, el) {
   }
   if (!AL.live(link(p))) return;
   AL.logRead && AL.logRead(p);
+  if (kind === 'news') AL.loadVideo(p);
   loadComments(p);
   const rel = S.posts.filter(x => x.id !== p.id && (x.catKeys || []).some(k => (p.catKeys || []).includes(k))).slice(0, 3);
   const r = $('#related', el); if (r && rel.length) r.innerHTML = section('من نفس القسم', '', `<div class="grid">${rel.map(x => card(x)).join('')}</div>`, '', false);
