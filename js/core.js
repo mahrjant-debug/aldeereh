@@ -77,10 +77,11 @@ const pic = AL.pic = (p, cls, big) => {
   return `<img class="${cls || ''}" src="${esc(u)}" alt="" loading="lazy" ${fail}>`;
 };
 const badges = AL.badges = p => (p.breaking ? '<span class="pill red">عاجل</span>' : '') + `<span class="pill">${esc(p.cat || '')}</span>`;
-const card = AL.card = (p, extra) => `<a class="card" href="${link(p)}" data-link>${pic(p, 'card-img')}<div class="card-b"><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3><div class="meta dim">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div>${extra || ''}</div></a>`;
+const card = AL.card = (p, extra) => p.opinion ? opCard(p) : `<a class="card" href="${link(p)}" data-link>${pic(p, 'card-img')}<div class="card-b"><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3><div class="meta dim">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div>${extra || ''}</div></a>`;
 const row = AL.row = (p, extra) => `<div class="row-w"><a class="row" href="${link(p)}" data-link>${pic(p, 'row-img')}<div><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3>${p.subtitle ? `<p class="dim sub">${esc(p.subtitle)}</p>` : ''}<div class="meta dim">${esc(ago(p.date))}${extra || ''}</div></div></a><button class="bm ${isSaved(p.id) ? 'on' : ''}" data-save="${p.id}" aria-label="حفظ"><span class="material-symbols-rounded">bookmark</span></button></div>`;
 const heroCard = (p, big) => `<a class="hero-c ${big ? 'big' : ''}" href="${link(p)}" data-link>${pic(p, 'hero-img', true)}<div class="hero-t"><div class="meta">${badges(p)}</div>${p.subtitle ? `<div class="hero-sub">${esc(p.subtitle)}</div>` : ''}<h2>${esc(p.title)}</h2><div class="meta">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div></div></a>`;
-const opCard = AL.opCard = p => `<a class="op" href="/opinion/${p.id}" data-link><span class="material-symbols-rounded q">format_quote</span><h3>${esc(p.title)}</h3><div class="au">${p.thumb && !NOIMG() ? `<img src="${esc(p.thumb)}" alt="" loading="lazy">` : `<span class="ini">${esc((p.author || '؟')[0])}</span>`}<div><b>${esc(p.author || '')}</b><div class="dim sm">${esc(ago(p.date))}</div></div></div></a>`;
+const avatar = (p, cls) => (p.thumb && !NOIMG()) ? `<img class="${cls}" src="${esc(p.thumb)}" alt="${esc(p.author || '')}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ini',textContent:'${esc((p.author || '؟')[0])}'}))">` : `<span class="${cls} ini">${esc((p.author || '؟')[0])}</span>`;
+const opCard = AL.opCard = p => `<a class="op" href="/opinion/${p.id}" data-link>${avatar(p, 'op-av')}<h3>${esc(p.title)}</h3><div class="op-f"><b>${esc(p.author || '')}</b><span class="dim sm">${esc(ago(p.date))}</span></div></a>`;
 const vidCard = AL.vidCard = v => `<button class="vid" data-yt="${esc(v.yt)}" data-vert="${v.vertical ? 1 : 0}" data-title="${esc(v.title)}"><div class="vid-th">${NOIMG() ? '' : `<img src="${esc(v.thumb)}" alt="" loading="lazy">`}<span class="play material-symbols-rounded">play_arrow</span>${v.vertical ? '<span class="pill">قصير</span>' : ''}</div><h3>${esc(v.title)}</h3><div class="dim sm">${esc(ago(v.date))}</div></button>`;
 const section = AL.section = (title, more, body, cls, sponsor) => `<section class="sec ${cls || ''}"><div class="sec-h"><h2>${esc(title)}</h2>${more ? `<a href="${more}" data-link>عرض الكل</a>` : ''}</div>${body}${sponsor === false ? '' : `<div class="spons">${(SPONSORS && SPONSORS[title]) ? 'هذا القسم برعاية ' + esc(SPONSORS[title]) : 'رعاية هذا القسم متاحة للمعلنين'}</div>`}</section>`;
 const statusHTML = () => `<div class="status ${S.live ? 'live' : ''}"><i></i><span>${S.live ? 'مباشر من الموقع' : (S.loading ? 'جارٍ التحديث…' : 'نسخة محفوظة')}</span></div>`;
@@ -269,7 +270,7 @@ async function pageCat(name, el) {
   setMeta(name, 'أخبار قسم ' + name);
   const draw = list => {
     const jobs = nk(name) === nk('وظائف وتسجيلات');
-    el.innerHTML = `<h1 class="pt">${esc(name)}</h1><div class="meta" style="margin-bottom:12px"><button class="btn ghost" data-followcat="${esc(name)}">${S.settings.notifCats.includes(name) ? 'إلغاء متابعة القسم' : 'متابعة القسم'}</button></div>${list.length ? `<div class="grid">${list.map(p => card(p, jobs && AL.jobChip ? AL.jobChip(p) : '')).join('')}</div>` : '<p class="empty">لا توجد أخبار في هذا القسم حالياً</p>'}${spons()}`;
+    el.innerHTML = `<h1 class="pt">${esc(name)}</h1><div class="meta" style="margin-bottom:12px"><button class="btn ghost" data-followcat="${esc(name)}">${S.settings.notifCats.includes(name) ? 'إلغاء متابعة القسم' : 'متابعة القسم'}</button></div>${list.length ? `<div class="grid${name === 'مقالات' ? ' opgrid' : ''}">${list.map(p => card(p, jobs && AL.jobChip ? AL.jobChip(p) : '')).join('')}</div>` : '<p class="empty">لا توجد أخبار في هذا القسم حالياً</p>'}${spons()}`;
   };
   const spons = () => '<div class="spons">رعاية هذا القسم متاحة للمعلنين</div>';
   if (name === 'مقالات') { draw(S.opinions); return; }
@@ -364,7 +365,8 @@ function articleHTML(p, full) {
   <div class="art-acts"><button class="icon" data-fs="-1" aria-label="تصغير الخط">A-</button><button class="icon" data-fs="1" aria-label="تكبير الخط">A+</button>
   <button class="icon ${isSaved(p.id) ? 'on' : ''}" data-save="${p.id}" aria-label="حفظ"><span class="material-symbols-rounded">bookmark</span></button>
   <button class="icon" data-sharepost="${p.id}" aria-label="مشاركة"><span class="material-symbols-rounded">share</span></button></div></div>
-  ${img(p, true) && !NOIMG() ? `<img class="art-img" src="${esc(img(p, true))}" alt="" onerror="this.remove()">` : ''}
+  ${isOp ? `<div class="op-hero">${avatar(p, 'op-av big')}<b>${esc(p.author || '')}</b></div>` : ''}
+  ${!isOp && img(p, true) && !NOIMG() ? `<img class="art-img" src="${esc(img(p, true))}" alt="" onerror="this.remove()">` : ''}
   <div class="meta">${badges(p)}</div>
   ${p.subtitle ? `<div class="art-sub">${esc(p.subtitle)}</div>` : ''}
   <h1>${esc(p.title)}</h1>
