@@ -71,7 +71,10 @@ const NOIMG = () => S.settings.dataSaver;
 /* ---------- Components ---------- */
 const pic = AL.pic = (p, cls, big) => {
   const u = img(p, big);
-  return (u && !NOIMG()) ? `<img class="${cls || ''}" src="${esc(u)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'${cls || ''} ph'}))">` : `<div class="${cls || ''} ph"></div>`;
+  if (!(u && !NOIMG())) return `<div class="${cls || ''} ph"></div>`;
+  const fail = `onerror="this.${cls === 'row-img' || cls === 'card-img' ? 'parentNode.' : ''}replaceWith(Object.assign(document.createElement('div'),{className:'${cls || ''} ph'}))"`;
+  if (cls === 'row-img' || cls === 'card-img') return `<span class="${cls} pw" style="--u:url('${esc(u).replace(/'/g, '%27')}')"><img src="${esc(u)}" alt="" loading="lazy" ${fail}></span>`;
+  return `<img class="${cls || ''}" src="${esc(u)}" alt="" loading="lazy" ${fail}>`;
 };
 const badges = AL.badges = p => (p.breaking ? '<span class="pill red">عاجل</span>' : '') + `<span class="pill">${esc(p.cat || '')}</span>`;
 const card = AL.card = (p, extra) => `<a class="card" href="${link(p)}" data-link>${pic(p, 'card-img')}<div class="card-b"><div class="meta">${badges(p)}</div><h3>${esc(p.title)}</h3><div class="meta dim">${esc(ago(p.date))}${p.author ? ' · ' + esc(p.author) : ''}</div>${extra || ''}</div></a>`;

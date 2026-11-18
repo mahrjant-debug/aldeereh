@@ -230,3 +230,5 @@ input[type=range]{width:100%;accent-color:var(--pri)}.prev{background:var(--sf2)
 .tabbar a{font-size:11px}
 .dsk{display:none}
 @media(min-width:900px){.dsk{display:grid}body{padding-bottom:90px}#adstrip{bottom:12px}.wg{grid-template-columns:repeat(3,1fr)}.w1,.w3{grid-column:auto}.hero-d{display:none}.nbadge{inset-inline-end:0}#banner{top:76px}.list.wide{display:none}}
+
+.pw{position:relative;overflow:hidden;display:block;background:var(--grs)}.pw::before{content:'';position:absolute;inset:-12px;background:var(--u) center/cover;filter:blur(14px) saturate(1.1)}.pw img{position:relative;display:block;width:100%;height:100%;object-fit:contain}
