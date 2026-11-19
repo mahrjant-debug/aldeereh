@@ -236,8 +236,10 @@ function startHome(el) {
   if (h) {
     const upd = () => { const c = h.getBoundingClientRect(), mid = c.left + c.width / 2; let b = 0, bd = 1e9; [...h.children].forEach((k, i) => { const r = k.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - mid); if (d < bd) { bd = d; b = i; } }); hi = b; dots.forEach((d, i) => d.classList.toggle('on', i === b)); };
     h.addEventListener('scroll', () => { clearTimeout(h._t); h._t = setTimeout(upd, 60); }, { passive: true });
-    dots.forEach((d, i) => d.addEventListener('click', () => h.children[i] && h.children[i].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })));
-    AL.timers.hero = setInterval(() => { if (!motionOK() || h.scrollWidth <= h.clientWidth + 4) return; const n = (hi + 1) % h.children.length; h.children[n].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }, 4000);
+    /* نحرّك الشريط الأفقي فقط، دون scrollIntoView الذي يسحب الصفحة كلها للأعلى */
+    const goTo = i => { const k = h.children[i]; if (!k) return; const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(); h.scrollTo({ left: h.scrollLeft + (kr.left - hr.left) - (hr.width - kr.width) / 2, behavior: 'smooth' }); };
+    dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+    AL.timers.hero = setInterval(() => { if (!motionOK() || document.hidden || h.scrollWidth <= h.clientWidth + 4) return; const r = h.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; goTo((hi + 1) % h.children.length); }, 4000);
   }
   const tk = $('#ticker', el); if (tk) {
     const brk = S.posts.filter(p => p.breaking), L = brk.length ? brk : S.posts.slice(0, 6); let ti = 0;
