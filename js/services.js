@@ -214,22 +214,45 @@ function exportCSV() {
 }
 AL.logRead = p => { try { const L = store.get('ald_reads', { cats: {}, posts: {} }); const c = p.cat || 'أخرى'; L.cats[c] = (L.cats[c] || 0) + 1; const e = L.posts[p.id] || { t: p.title, n: 0 }; e.n++; L.posts[p.id] = e; const ks = Object.keys(L.posts); if (ks.length > 200) ks.sort((a, b) => L.posts[a].n - L.posts[b].n).slice(0, ks.length - 200).forEach(k => delete L.posts[k]); store.set('ald_reads', L); } catch (e) {} };
 
-/* ================= التثبيت (PWA) ================= */
+/* ================= التثبيت (PWA) — لكل المتصفحات ================= */
 let deferred = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; const b = $('#installbox'); if (b) b.innerHTML = installHTML(); });
-window.addEventListener('appinstalled', () => { deferred = null; const b = $('#installbox'); if (b) b.innerHTML = ''; });
-const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-const ios = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener('appinstalled', () => { deferred = null; const b = $('#installbox'); if (b) b.innerHTML = ''; toast('تم تثبيت التطبيق'); });
+const standalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
+const ENV = () => {
+  const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const inApp = /FBAN|FBAV|Instagram|Snapchat|TikTok|Twitter|Line\/|MicroMessenger|WhatsApp|Telegram/i.test(ua) || (/Android/.test(ua) && /; wv\)/.test(ua));
+  const edge = /Edg(e|A|iOS)?\//.test(ua), ff = /Firefox|FxiOS/.test(ua), sam = /SamsungBrowser/.test(ua), opera = /OPR\/|Opera/.test(ua);
+  const chrome = !edge && !opera && !sam && /Chrome|CriOS/.test(ua), android = /Android/.test(ua), mac = /Macintosh/.test(ua) && !ios;
+  const safari = !chrome && !edge && !ff && !opera && !sam && /Safari/.test(ua);
+  return { ios, inApp, edge, ff, sam, opera, chrome, android, mac, safari, mobile: ios || android };
+};
 const STORES = { ios: '', android: '' };
+const ic = n => `<span class="material-symbols-rounded inl">${n}</span>`;
+function steps() {
+  const e = ENV();
+  if (e.inApp) return [`افتح هذه الصفحة في المتصفح: اضغط ${ic('more_horiz')} ثم «فتح في ${e.ios ? 'Safari' : 'Chrome'}»`, 'ثم أعد فتح هذه البطاقة واتبع خطوات التثبيت'];
+  if (e.ios) return [`اضغط زر المشاركة ${ic('ios_share')} ${e.safari ? 'في أسفل الشاشة' : 'بجوار شريط العنوان'}`, 'مرّر للأسفل واختر «إضافة إلى الشاشة الرئيسية»', 'اضغط «إضافة» في أعلى الشاشة'];
+  if (e.mac && e.safari) return ['من قائمة «ملف» اختر «إضافة إلى Dock»', `أو من زر المشاركة ${ic('ios_share')} اختر «إضافة إلى Dock»`];
+  if (e.ff && !e.mobile) return ['متصفح Firefox لا يدعم تثبيت المواقع كتطبيق على الحاسوب', 'افتح الموقع في Chrome أو Edge للتثبيت، أو اضغط Ctrl+D لإضافته إلى المفضلة'];
+  if (e.ff) return [`اضغط قائمة المتصفح ${ic('more_vert')}`, 'اختر «تثبيت» ثم «إضافة»'];
+  if (e.mobile) return [`اضغط قائمة المتصفح ${ic('more_vert')}`, 'اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»', 'اضغط «تثبيت»'];
+  return [`اضغط أيقونة التثبيت ${ic('install_desktop')} في يسار شريط العنوان`, `أو من قائمة المتصفح ${ic('more_vert')} اختر «تثبيت أصداء الديرة»`];
+}
+const hidden = () => { const t = store.get('ald_inst_h2', 0); return t && Date.now() - t < 14 * 864e5; };
 function installHTML(force) {
-  if (standalone() || (!force && store.get('ald_inst_hide', false))) return '';
-  if (!deferred && !ios() && !force) return '';
-  return `<div class="inst"><span class="material-symbols-rounded">install_mobile</span><div style="flex:1"><b>ثبّت التطبيق على جوالك</b>${ios() ? '<ol class="sm"><li>اضغط زر المشاركة في Safari</li><li>اختر «إضافة إلى الشاشة الرئيسية»</li><li>اضغط «إضافة»</li></ol>' : '<div class="sm dim">وصول أسرع، ويعمل بملء الشاشة</div>'}
+  if (standalone()) return '';
+  if (!force && hidden()) return '';
+  const e = ENV(), lis = steps().map(x => `<li>${x}</li>`).join('');
+  return `<div class="inst"><span class="material-symbols-rounded">${e.mobile ? 'install_mobile' : 'install_desktop'}</span><div style="flex:1"><b>ثبّت أصداء الديرة كتطبيق</b>${deferred ? '<div class="sm dim">وصول أسرع، ويعمل بملء الشاشة، وأخبارك على بُعد نقرة</div>' : `<ol class="sm">${lis}</ol>`}
   ${STORES.ios || STORES.android ? `<div class="acts" style="justify-content:flex-start">${STORES.ios ? `<a class="btn ghost" href="${STORES.ios}">App Store</a>` : ''}${STORES.android ? `<a class="btn ghost" href="${STORES.android}">Google Play</a>` : ''}</div>` : ''}</div>
   ${deferred ? '<button class="btn" data-install>تثبيت</button>' : ''}<button class="icon" data-hideinst aria-label="إخفاء"><span class="material-symbols-rounded">close</span></button></div>`;
 }
-AL.installHTML = installHTML; AL.canInstall = () => !!deferred;
-AL.installApp = async () => { if (!deferred) { toast(ios() ? 'استخدم زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»' : 'التثبيت غير متاح في هذا المتصفح'); return; } deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; };
+AL.installHTML = installHTML; AL.canInstall = () => !standalone(); AL.hasNativeInstall = () => !!deferred;
+AL.installApp = async () => {
+  if (!deferred) { AL.openModal(`<div class="m-box light"><button class="m-x" aria-label="إغلاق"><span class="material-symbols-rounded">close</span></button><h2>تثبيت التطبيق</h2><ol class="sm" style="line-height:2">${steps().map(x => `<li>${x}</li>`).join('')}</ol></div>`); return; }
+  deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null;
+};
 
 /* ================= بطاقة الخط الكبير ================= */
 function seniorHTML() {
@@ -260,7 +283,7 @@ document.addEventListener('click', e => {
   else if (D.csv !== undefined) exportCSV();
   else if (D.resetstats !== undefined) { if (confirm('تصفير كل الإحصاءات؟')) { AL.resetAdStats(); store.set('ald_reads', { cats: {}, posts: {} }); AL.route(); } }
   else if (D.install !== undefined) AL.installApp();
-  else if (D.hideinst !== undefined) { store.set('ald_inst_hide', true); const b = $('#installbox'); b && (b.innerHTML = ''); }
+  else if (D.hideinst !== undefined) { store.set('ald_inst_h2', Date.now()); const b = $('#installbox'); b && (b.innerHTML = ''); }
   else if (D.fsset) { AL.setS({ fs: +D.fsset }); store.set('ald_senior', true); const s = $('#senior'); s && (s.innerHTML = ''); }
   else if (D.senior !== undefined) { store.set('ald_senior', true); const s = $('#senior'); s && (s.innerHTML = ''); }
 });
